@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Oshawott</title>
+	<style>
+		:root {
+			--input-height: 20vh;
+			--green-color: #7FC6BE;
+		}
+
+		html,
+		body {
+			margin: 0px;
+			padding: 0px;
+			background: #F5F4F2;
+		}
+
+		body {
+			width: 100vw;
+			height: 100vh;
+		}
+
+		#image {
+			width: 17vw;
+		}
+
+		#input-box {
+			height: var(--input-height);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: column;
+		}
+
+		#input-row {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: row;
+		}
+
+		#container {
+			display: flex;
+			justify-content: flex-end;
+			align-items: center;
+			flex-direction: column;
+			width: 100%;
+			height: calc(50% + var(--input-height)/2);
+		}
+
+		input {
+			height: 10vh;
+			width: 40vw;
+			border-radius: 10px;
+			background: white;
+			box-sizing: border-box;
+			border: black;
+			margin-bottom: 10px;
+			text-align: start;
+			font-size: 2em;
+			padding: 1vw;
+		}
+
+		input:focus {
+			color: black;
+			outline: none;
+			border: solid 2px var(--green-color);
+		}
+
+		input:-webkit-autofill {
+			-webkit-box-shadow: 0 0 0 100px #e6e6e6 inset;
+			box-shadow: 0 0 0 100px #e6e6e6 inset;
+		}
+
+		button {
+			background-color: var(--green-color);
+			border: none;
+			padding: 20px 10px;
+			border-radius: 20px;
+			color: white;
+			font-weight: 700;
+			margin-left: 1vw;
+		}
+	</style>
+
+	<script>
+		async function onPokemonifyClick(e) {
+			const input = document.getElementById("input")
+			const host = window.location.host
+			const response = await fetch(`http://${host}/save`, {
+				method: "POST",
+				body: JSON.stringify({
+					url: input.value
+				})
+			});
+			const url = await response.text();
+			var p = document.getElementById("link")
+			p.innerHTML = url
+			p.href = url
+		}
+	</script>
+</head>
+
+<body>
+	<div id="container">
+		<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/501.png"
+			alt="Oshawott" id="image">
+		<div id="input-box">
+			<div id="input-row">
+				<input type="text" id="input">
+				<button type="button" onclick="onPokemonifyClick()">Pokemonify</button>
+			</div>
+			<a id="link" href=""></a>
+		</div>
+	</div>
+</body>
+
+</html>
