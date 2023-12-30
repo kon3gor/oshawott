@@ -1,9 +1,10 @@
-package core
+package ydbs
 
 import (
 	"fmt"
 	"os"
 
+	"github.com/kon3gor/oshawott"
 	"github.com/yandex-cloud/ydb-go-sdk/v2"
 	"github.com/yandex-cloud/ydb-go-sdk/v2/connect"
 	"github.com/yandex-cloud/ydb-go-sdk/v2/table"
@@ -16,31 +17,23 @@ var txc = table.TxControl(
 	table.CommitTx(),
 )
 
-func SaveUrl(ctx OshawottContext, key string, url string) {
-	db, err := conn(ctx)
+func (ys YdbStorage) saveUrl(key oshawott.Key, url string) {
+	session, err := ys.conn.Table().CreateSession(ys.ctx.Ctx)
 	if err != nil {
 		//todo: handle this shit
 		fmt.Println(err)
 		return
 	}
-	defer db.Close()
+	defer session.Close(ys.ctx.Ctx)
 
-	session, err := db.Table().CreateSession(ctx.ctx)
-	if err != nil {
-		//todo: handle this shit
-		fmt.Println(err)
-		return
-	}
-	defer session.Close(ctx.ctx)
-
-	_, _, err = session.Execute(ctx.ctx, txc,
+	_, _, err = session.Execute(ys.ctx.Ctx, txc,
 		`--!syntax_v1
 		declare $key as Utf8;
 		declare $value as Utf8;
 		upsert into Links (key, value) values ($key, $value)
 		`,
 		table.NewQueryParameters(
-			table.ValueParam("$key", ydb.UTF8Value(key)),
+			table.ValueParam("$key", ydb.UTF8Value(string(key))),
 			table.ValueParam("$value", ydb.UTF8Value(url)),
 		),
 	)
@@ -50,30 +43,22 @@ func SaveUrl(ctx OshawottContext, key string, url string) {
 	}
 }
 
-func GetKey(ctx OshawottContext, v string) (string, bool) {
-	db, err := conn(ctx)
+func (ys YdbStorage) getKey(url string) (oshawott.Key, bool) {
+	session, err := ys.conn.Table().CreateSession(ys.ctx.Ctx)
 	if err != nil {
 		//todo: handle this shit
 		fmt.Println(err)
-		return "", false
+		return oshawott.NoKey, false
 	}
-	defer db.Close()
+	defer session.Close(ys.ctx.Ctx)
 
-	session, err := db.Table().CreateSession(ctx.ctx)
-	if err != nil {
-		//todo: handle this shit
-		fmt.Println(err)
-		return "", false
-	}
-	defer session.Close(ctx.ctx)
-
-	_, res, err := session.Execute(ctx.ctx, txc,
+	_, res, err := session.Execute(ys.ctx.Ctx, txc,
 		`--!syntax_v1
 		declare $value as Utf8;
 		select key from Links where value = $value
 		`,
 		table.NewQueryParameters(
-			table.ValueParam("$value", ydb.UTF8Value(v)),
+			table.ValueParam("$value", ydb.UTF8Value(url)),
 		),
 	)
 
@@ -85,7 +70,7 @@ func GetKey(ctx OshawottContext, v string) (string, bool) {
 	}
 
 	var key string
-	for res.NextResultSet(ctx.ctx, "key") {
+	for res.NextResultSet(ys.ctx.Ctx, "key") {
 		for res.NextRow() {
 			err := res.Scan(&key)
 
@@ -95,7 +80,7 @@ func GetKey(ctx OshawottContext, v string) (string, bool) {
 				return "", false
 			}
 
-			return key, true
+			return oshawott.Key(key), true
 		}
 	}
 
@@ -103,33 +88,25 @@ func GetKey(ctx OshawottContext, v string) (string, bool) {
 		fmt.Println(res.Err())
 	}
 
-	return "", false
+	return oshawott.NoKey, false
 }
 
-func GetValue(ctx OshawottContext, k string) (string, bool) {
-	db, err := conn(ctx)
+func (ys YdbStorage) getValue(k oshawott.Key) (string, bool) {
+	session, err := ys.conn.Table().CreateSession(ys.ctx.Ctx)
 	if err != nil {
 		//todo: handle this shit
 		fmt.Println(err)
 		return "", false
 	}
-	defer db.Close()
+	defer session.Close(ys.ctx.Ctx)
 
-	session, err := db.Table().CreateSession(ctx.ctx)
-	if err != nil {
-		//todo: handle this shit
-		fmt.Println(err)
-		return "", false
-	}
-	defer session.Close(ctx.ctx)
-
-	_, res, err := session.Execute(ctx.ctx, txc,
+	_, res, err := session.Execute(ys.ctx.Ctx, txc,
 		`--!syntax_v1
 		declare $key as Utf8;
 		select value from Links where key = $key
 		`,
 		table.NewQueryParameters(
-			table.ValueParam("$key", ydb.UTF8Value(k)),
+			table.ValueParam("$key", ydb.UTF8Value(string(k))),
 		),
 	)
 
@@ -141,7 +118,7 @@ func GetValue(ctx OshawottContext, k string) (string, bool) {
 	}
 
 	var value string
-	for res.NextResultSet(ctx.ctx, "value") {
+	for res.NextResultSet(ys.ctx.Ctx, "value") {
 		for res.NextRow() {
 			err := res.Scan(&value)
 
@@ -162,24 +139,16 @@ func GetValue(ctx OshawottContext, k string) (string, bool) {
 	return "", false
 }
 
-func GetUsedKeys(ctx OshawottContext) ([]string, error) {
-	db, err := conn(ctx)
+func (ys YdbStorage) getUsedKeys() ([]string, error) {
+	session, err := ys.conn.Table().CreateSession(ys.ctx.Ctx)
 	if err != nil {
 		//todo: handle this shit
 		fmt.Println(err)
 		return nil, err
 	}
-	defer db.Close()
+	defer session.Close(ys.ctx.Ctx)
 
-	session, err := db.Table().CreateSession(ctx.ctx)
-	if err != nil {
-		//todo: handle this shit
-		fmt.Println(err)
-		return nil, err
-	}
-	defer session.Close(ctx.ctx)
-
-	_, res, err := session.Execute(ctx.ctx, txc,
+	_, res, err := session.Execute(ys.ctx.Ctx, txc,
 		`--!syntax_v1
 		select key from Links;
 		`,
@@ -195,7 +164,7 @@ func GetUsedKeys(ctx OshawottContext) ([]string, error) {
 
 	keys := make([]string, 0)
 	var value string
-	for res.NextResultSet(ctx.ctx, "key") {
+	for res.NextResultSet(ys.ctx.Ctx, "key") {
 		for res.NextRow() {
 			err := res.Scan(&value)
 
@@ -218,7 +187,7 @@ func GetUsedKeys(ctx OshawottContext) ([]string, error) {
 	return keys, nil
 }
 
-func conn(ctx OshawottContext) (*connect.Connection, error) {
+func conn(ctx oshawott.AppContext) (*connect.Connection, error) {
 	sf, found := os.LookupEnv("SA_FILE")
 	if !found {
 		//todo: send error here
@@ -227,7 +196,7 @@ func conn(ctx OshawottContext) (*connect.Connection, error) {
 	}
 
 	return connect.New(
-		ctx.ctx,
+		ctx.Ctx,
 		connect.MustConnectionString(ydbUrl),
 		connect.WithServiceAccountKeyFileCredentials(sf),
 	)

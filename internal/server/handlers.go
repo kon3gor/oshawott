@@ -1,4 +1,4 @@
-package engine
+package server
 
 import (
 	"encoding/json"
@@ -6,34 +6,26 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/kon3gor/oshawott"
 	"github.com/kon3gor/oshawott/internal/core"
 )
-
-type oshawottHandler func(http.ResponseWriter, *http.Request, Engine)
-
-type httpHandler func(http.ResponseWriter, *http.Request)
 
 type saveReq struct {
 	Url string `json:"url"`
 }
 
-func wrap(engine Engine, handler oshawottHandler) httpHandler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handler(w, r, engine)
-	}
-}
-
-func ping(w http.ResponseWriter, r *http.Request) {
+func (s server) ping(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "pong")
 }
 
-func save(w http.ResponseWriter, r *http.Request, engine Engine) {
+func (s server) save(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		index(w, r)
 		return
 	}
 
 	defer r.Body.Close()
+
 	var body saveReq
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		//todo: handle this shit
@@ -44,16 +36,16 @@ func save(w http.ResponseWriter, r *http.Request, engine Engine) {
 		//todo: handle this shit
 	}
 
-	key, err := engine.SaveUrl(url)
+	key, err := s.engine.SaveUrl(url)
 	fmt.Println(err)
 	fmt.Fprint(w, fmt.Sprintf("http://localhost:8080/%s", key))
 }
 
-func resolve(w http.ResponseWriter, r *http.Request, engine Engine) {
+func (s server) resolve(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	_, hash, _ := strings.Cut(path, "/")
-	url, found := core.GetValue(e.ctx, hash)
-	if !found {
+	url, err := s.engine.GetUrl(oshawott.Key(hash))
+	if err != nil {
 		//todo: handle this shit
 		http.NotFound(w, r)
 		return
