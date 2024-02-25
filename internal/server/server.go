@@ -14,7 +14,7 @@ type server struct {
 }
 
 func Start(ctx oshawott.AppContext, e oshawott.Engine) {
-	port := fmt.Sprintf(":%d", ctx.Port)
+	port := fmt.Sprintf("0.0.0.0:%d", ctx.Port)
 
 	s := server{e, ctx}
 	http.HandleFunc("/save", s.save)

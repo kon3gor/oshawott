@@ -28,7 +28,7 @@ func (mc MapCahce) SavePair(v string, k oshawott.Key) {
 }
 
 func main() {
-	ctx := oshawott.NewContext(context.Background(), oshawott.WithDebug(true))
+	ctx := oshawott.NewContext(context.Background(), oshawott.WithDebug(false), oshawott.WithPort(8080))
 	ydbs := ydbs.NewYdbStorage(ctx, make(MapCahce))
 	count, _ := ydbs.Init()
 	fkp := file.NewFileKeyProvider("keys.txt", ',', count)

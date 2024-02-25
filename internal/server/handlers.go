@@ -38,7 +38,7 @@ func (s server) save(w http.ResponseWriter, r *http.Request) {
 
 	key, err := s.engine.SaveUrl(url)
 	fmt.Println(err)
-	fmt.Fprint(w, fmt.Sprintf("http://localhost:8080/%s", key))
+	fmt.Fprint(w, key)
 }
 
 func (s server) resolve(w http.ResponseWriter, r *http.Request) {

@@ -88,16 +88,18 @@
 		async function onPokemonifyClick(e) {
 			const input = document.getElementById("input")
 			const host = window.location.host
-			const response = await fetch(`http://${host}/save`, {
+			const response = await fetch(`https://${host}/save`, {
 				method: "POST",
 				body: JSON.stringify({
 					url: input.value
 				})
 			});
-			const url = await response.text();
+			const key = await response.text();
+			const url = `http://${host}/${key}`
 			var p = document.getElementById("link")
 			p.innerHTML = url
 			p.href = url
+			navigator.clipboard.writeText(url);
 		}
 	</script>
 </head>
